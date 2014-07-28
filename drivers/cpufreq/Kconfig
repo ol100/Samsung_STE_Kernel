@@ -59,7 +59,8 @@ config CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 	  the CPU.
 	  
 config CPU_FREQ_GOV_PEGASUSQ
-	tristate "'pegasusq' cpufreq policy governor"	  
+	bool "pegasusq"
+	select CPU_FREQ_GOV_PEGASUSQ
 
 config CPU_FREQ_DEFAULT_GOV_POWERSAVE
 	bool "powersave"
