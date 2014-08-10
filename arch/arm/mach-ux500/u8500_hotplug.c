@@ -24,7 +24,6 @@
 static struct work_struct suspend_work;
 static struct work_struct resume_work;
 
-static bool suspend = false;
 static unsigned int suspend_max_freq = 800000;
 module_param(suspend_max_freq, uint, 0644);
 
@@ -49,24 +48,33 @@ static struct notifier_block cpufreq_notifier_block = {
 
 static void suspend_work_fn(struct work_struct *work)
 {
+	int cpu;
 
-	suspend = true;
+	for_each_online_cpu(cpu)
+	{
+		if (!cpu)
+			continue;
 
-	cpu_down(1);
+		cpu_down(cpu);
+	}
 
-	cpufreq_update_policy(0);
+	for_each_online_cpu(cpu)
+		cpufreq_update_policy(cpu);
 }
 
 static void resume_work_fn(struct work_struct *work)
 {
 	int cpu;
 
-	suspend = false;
+	for_each_online_cpu(cpu)
+		cpufreq_update_policy(cpu);
 
-	cpu_up(1);
+	for_each_possible_cpu(cpu) {
+		if (!cpu)
+			continue;
 
-	cpufreq_update_policy(0);
-	cpufreq_update_policy(1);
+		cpu_up(cpu);
+	}
 }
 
 static void u8500_hotplug_suspend(struct early_suspend *handler)
