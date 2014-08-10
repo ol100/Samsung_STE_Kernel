@@ -24,6 +24,8 @@
 static struct work_struct suspend_work;
 static struct work_struct resume_work;
 
+static unsigned int max_freq;
+static bool update_freq = false;
 static unsigned int suspend_max_freq = 800000;
 module_param(suspend_max_freq, uint, 0644);
 
@@ -32,12 +34,12 @@ static int cpufreq_callback(struct notifier_block *nfb,
 {
 	struct cpufreq_policy *policy = data;
 
-	if (event != CPUFREQ_ADJUST)
+	if (event != CPUFREQ_ADJUST || !update_freq)
 		return 0;
 
 	cpufreq_verify_within_limits(policy,
 		policy->cpuinfo.min_freq,
-		suspend ? suspend_max_freq : policy->cpuinfo.max_freq);
+		max_freq);
 
 	return 0;
 }
@@ -50,6 +52,8 @@ static void suspend_work_fn(struct work_struct *work)
 {
 	int cpu;
 
+	max_freq = suspend_max_freq;
+
 	for_each_online_cpu(cpu)
 	{
 		if (!cpu)
@@ -58,16 +62,22 @@ static void suspend_work_fn(struct work_struct *work)
 		cpu_down(cpu);
 	}
 
+	update_freq = true;
 	for_each_online_cpu(cpu)
 		cpufreq_update_policy(cpu);
+	update_freq = false;
 }
 
 static void resume_work_fn(struct work_struct *work)
 {
 	int cpu;
 
+	max_freq = LONG_MAX;
+
+	update_freq = true;
 	for_each_online_cpu(cpu)
 		cpufreq_update_policy(cpu);
+	update_freq = false;
 
 	for_each_possible_cpu(cpu) {
 		if (!cpu)
