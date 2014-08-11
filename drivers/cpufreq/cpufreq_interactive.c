@@ -137,9 +137,9 @@ static bool io_is_busy = true;
  * up_threshold_any_cpu_freq then do not let the frequency to drop below
  * sync_freq
  */
-static unsigned int up_threshold_any_cpu_load = 75;
+static unsigned int up_threshold_any_cpu_load = 50;
 static unsigned int sync_freq = 400000;
-static unsigned int up_threshold_any_cpu_freq = 800000;
+static unsigned int up_threshold_any_cpu_freq = 600000;
 
 static inline cputime64_t get_cpu_idle_time_jiffy(unsigned int cpu,
 						  cputime64_t *wall)
@@ -373,13 +373,13 @@ static void cpufreq_interactive_timer(unsigned long data)
 		if (pcpu->target_freq < boosted_freq) {
 			new_freq = boosted_freq;
 		} else {
-			new_freq = pcpu->policy->min + (pcpu->policy->max - pcpu->policy->min) * cpu_load / 100;
+			new_freq = pcpu->policy->max * cpu_load / 100;
 
 			if (new_freq < boosted_freq)
 				new_freq = boosted_freq;
 		}
 	} else {
-		new_freq = pcpu->policy->min + (pcpu->policy->max - pcpu->policy->min) * cpu_load / 100;
+		new_freq = pcpu->policy->max * cpu_load / 100;
 		if (new_freq > boosted_freq &&
 				pcpu->target_freq < boosted_freq)
 			new_freq = boosted_freq;
@@ -424,7 +424,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	pcpu->hispeed_validate_time = now;
 
 	if (cpufreq_frequency_table_target(pcpu->policy, pcpu->freq_table,
-					   new_freq, CPUFREQ_RELATION_C,
+					   new_freq, CPUFREQ_RELATION_H,
 					   &index)) {
 		spin_unlock_irqrestore(&pcpu->target_freq_lock, flags);
 		goto rearm;
